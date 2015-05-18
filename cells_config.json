@@ -1,0 +1,84 @@
+{
+    "params":
+    {
+        "preproc":
+        {
+            "preproc_do_prefilter": "false",
+            "preproc_prefilter_sigma": "1",
+            "preproc_do_masking": "false",
+            "preproc_mask_image": "",
+            "preproc_masking_sigma": "5",
+            "preproc_percentile": "0.8",
+            "preproc_do_normalize": "false",
+            "preproc_discard_lower_percentile": "false",
+            "preproc_discard_upper_percentile": "true",
+            "preproc_bgs_scale": "0"
+        },
+        "init":
+        {
+            "init_rect_boarder":
+            {
+                "0": "10",
+                "1": "10"
+            },
+            "init_max_search_filter_sigma": "7",
+            "init_blob_min": "30",
+            "init_blob_max": "50",
+            "init_circle_radius": "3",
+            "init_image": "",
+            "init_mode": "blob_det"
+        },
+        "seg":
+        {
+            "seg_allow_fission": "false",
+            "seg_allow_fusion": "false",
+            "seg_allow_handles": "false",
+            "seg_use_fast_evolution": "false",
+            "seg_use_sobolev_gradients": "true",
+            "seg_num_iter": "100",
+            "seg_use_gpu": "false",
+            "seg_debug": "false",
+            "verbose": "true",
+            "seg_cell_size": "20"
+        },
+        "energy":
+        {
+            "energy_coeff_data": "1",
+            "energy_coeff_length": "0.04",
+            "energy_coeff_balloon": "0",
+            "energy_coeff_outward_flow": "0",
+            "energy_coeff_shape": "4",
+            "energy_coeff_shape_23D": "0",
+            "energy_coeff_vec_field": "0",
+            "energy_region_merge_ths": "0.2",
+            "energy_particle_interaction_radius": "4",
+            "energy_sobolev_gradient_kernel_sigma": "3",
+            "energy_local_window_radius": "3",
+            "energy_curvature_mask_radius": "4",
+            "energy_psf_file_name": "..\/A\/images\/psf_sigma_2.tif",
+            "energy_shape_template_file_name": "..\/A\/images\/circle_binary_100x100.tif",
+            "energy_vector_field_file_name": "",
+            "energy_ext_name": "pcDecPoisson",
+            "energy_int_name": "curv",
+            "energy_order_of_moments": "20",
+            "energy_shape_centroid_coeff":
+            {
+                "0": "1",
+                "1": "0"
+            }
+        },
+        "image":
+        {
+            "image_spacing":
+            {
+                "0": "10",
+                "1": "10"
+            },
+            "image_name": "..\/A\/images\/cells_561x324.tif"
+        },
+        "gpu":
+        {
+            "gpu_workgroupo_size": "32"
+        }
+    }
+}
