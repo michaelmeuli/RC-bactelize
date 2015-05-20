@@ -108,7 +108,10 @@
 #include "itkRCExponentialPotentialEnergy.h"
 #include "itkRCCenterOfMassDirectedFlow.h"
 
-
+#include "itkExtractImageFilter.h"
+#include "itkCastImageFilter.h"
+#include "itkImageIOBase.h"
+#include "itkSCIFIOImageIO.h"
 
 #ifdef USE_GPU
 #include "itkRCGPUPiecewiseConstantSquareDistCurvatureRegEnergy.h"
@@ -664,6 +667,8 @@ int main(int argc, char** argv) {
     typedef unsigned short OutputPixelType;
     typedef int LabelPixelType;
 
+    typedef itk::Image<InternalPixelType, 5> InternalImageType5D;
+    typedef itk::Image<InternalPixelType, 4> InternalImageType4D;
     typedef itk::Image<InternalPixelType, DIMENSION> InternalImageType;
     typedef itk::Image<OutputPixelType, DIMENSION> OutputImageType;
     typedef itk::Image<LabelAbsPixelType, DIMENSION> LabelAbsImageType; //OR TBinaryImage
@@ -867,15 +872,19 @@ int main(int argc, char** argv) {
     /*
      * Read the data image and set image information correctly.
      */
-    typedef itk::ImageFileReader<InternalImageType> FileReaderType;
+    itk::SCIFIOImageIO::Pointer io = itk::SCIFIOImageIO::New();
+    io->DebugOn();
+    typedef itk::ImageFileReader<InternalImageType5D> FileReaderType;
     FileReaderType::Pointer vFileReader = FileReaderType::New();
+    std::cout << "reader->GetUseStreaming(): " << vFileReader->GetUseStreaming() << std::endl;
+    std::cout << "done checking streaming usage" << std::endl;
+    vFileReader->SetImageIO(io);
     vFileReader->SetFileName(vParams.image_name);
-    typedef itk::ChangeInformationImageFilter<InternalImageType> ChangeInformationImageFilterType;
-    ChangeInformationImageFilterType::Pointer vChangeDataImgSpacingFilter =
-            ChangeInformationImageFilterType::New();
-    vChangeDataImgSpacingFilter->SetInput(vFileReader->GetOutput());
-    vChangeDataImgSpacingFilter->SetChangeSpacing(true);
-    vChangeDataImgSpacingFilter->SetOutputSpacing(vSpacingCL);
+    typedef itk::StreamingImageFilter<InternalImageType5D, InternalImageType5D> StreamingFilter;
+    StreamingFilter::Pointer streamer = StreamingFilter::New();
+    streamer->SetInput(vFileReader->GetOutput());
+    streamer->SetNumberOfStreamDivisions(4);
+
     /// Perform an update to be able to read out region-size information etc.
     try {
         vFileReader->Update();
@@ -883,11 +892,88 @@ int main(int argc, char** argv) {
         std::cerr << "Exception caught when reading data image. The error is: " << std::endl;
         std::cerr << vE << std::endl;
     }
+
+
+    const itk::ImageIOBase * imageIO = vFileReader->GetImageIO();
+    itk::ImageIORegion region = imageIO->GetIORegion();
+    int regionDim = region.GetImageDimension();
+    std::cout << "--== Metadata from ImageIOBase ==--" << std::endl;
+    for (int i = 0; i < regionDim; i++) {
+      std::cout << "\tDimension " << i + 1 << " Size: "
+                << region.GetSize(i) << std::endl;
+    }
+    for (int i = 0; i < regionDim; i++) {
+      if (region.GetSize(i) > 1) {
+        std::cout << "\tSpacing " << i + 1 << ": "
+                  << imageIO->GetSpacing(i) << std::endl;
+      }
+    }
+    std::cout << "\tByte Order: "
+              << imageIO->GetByteOrderAsString(imageIO->GetByteOrder())
+              << std::endl;
+    std::cout << "\tPixel Stride: " << imageIO->GetPixelStride() << std::endl;
+    std::cout << "\tPixel Type: "
+              << imageIO->GetPixelTypeAsString(imageIO->GetPixelType())
+              << std::endl;
+    std::cout << "\tImage Size (in pixels): "
+              << imageIO->GetImageSizeInPixels() << std::endl;
+    std::cout << "\tPixel Type: "
+              << imageIO->GetComponentTypeAsString(imageIO->GetComponentType())
+              << std::endl;
+    std::cout << "\tRGB Channel Count: "
+              << imageIO->GetNumberOfComponents() << std::endl;
+    std::cout << "\tNumber of Dimensions: "
+              << imageIO->GetNumberOfDimensions() << std::endl;
+    
+    InternalImageType5D::Pointer image5D =  InternalImageType5D::New();
+    image5D = streamer->GetOutput();
+    image5D->Update();
+
+    // DimensionOrder = XYCZT
+    typedef itk::ExtractImageFilter<InternalImageType5D, InternalImageType4D> FilterType5;
+    FilterType5::Pointer exfilter5 = FilterType5::New();
+    exfilter5->InPlaceOn();
+    exfilter5->SetDirectionCollapseToSubmatrix();
+    InternalImageType5D::RegionType inputRegion5 = image5D->GetLargestPossibleRegion();
+    InternalImageType5D::SizeType size5 = inputRegion5.GetSize();
+    size5[4] = 0;   //collapse T
+    InternalImageType5D::IndexType start5 = inputRegion5.GetIndex();
+    start5[4] = 0;  
+    InternalImageType5D::RegionType desiredRegion5;
+    desiredRegion5.SetSize(size5);
+    desiredRegion5.SetIndex(start5);
+    exfilter5->SetExtractionRegion(desiredRegion5); 
+    exfilter5->SetInput(image5D);
+
+    typedef itk::ExtractImageFilter<InternalImageType4D, InternalImageType> FilterType4;
+    FilterType4::Pointer exfilter4 = FilterType4::New();
+    exfilter4->InPlaceOn();
+    exfilter4->SetDirectionCollapseToSubmatrix();
+    exfilter5->Update();
+    InternalImageType4D::RegionType inputRegion4 = exfilter5->GetOutput()->GetLargestPossibleRegion();
+    InternalImageType4D::SizeType size4 = inputRegion4.GetSize();
+    size4[3] = 0;   //collapse C
+    InternalImageType4D::IndexType start4 = inputRegion4.GetIndex();
+    start4[3] = 0;  //bacteriachannell = 0
+    InternalImageType4D::RegionType desiredRegion4;
+    desiredRegion4.SetSize(size4);
+    desiredRegion4.SetIndex(start4);
+    exfilter4->SetExtractionRegion(desiredRegion4); 
+    exfilter4->SetInput(exfilter5->GetOutput());
+    exfilter4->Update();
+
+    typedef itk::ChangeInformationImageFilter<InternalImageType> ChangeInformationImageFilterType;
+    ChangeInformationImageFilterType::Pointer vChangeDataImgSpacingFilter =
+            ChangeInformationImageFilterType::New();
+    vChangeDataImgSpacingFilter->SetInput(exfilter4->GetOutput());    //change source
+    vChangeDataImgSpacingFilter->SetChangeSpacing(true);
+    vChangeDataImgSpacingFilter->SetOutputSpacing(vSpacingCL);
+
     std::cout << "Original image spacing: "
-            << vFileReader->GetOutput()->GetSpacing()
+            << exfilter4->GetOutput()->GetSpacing()                     //change source
             << " was overridden to " << vSpacingCL << std::endl;
     vChangeDataImgSpacingFilter->Update();
-    InternalImageType::Pointer vDataImagePointer = vChangeDataImgSpacingFilter->GetOutput();
+    InternalImageType::Pointer vDataImagePointer = vChangeDataImgSpacingFilter->GetOutput();  
     
     /*
      * PREPROCESSING
