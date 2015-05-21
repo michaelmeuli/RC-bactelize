@@ -678,12 +678,6 @@ int main(int argc, char** argv) {
     
     std::string vOutputFileName;
 
-    typedef itk::ShiftScaleImageFilter<LabelAbsImageType, OutputImageType> ScaleForOutputFilterType;
-    ScaleForOutputFilterType::Pointer vOutputScaleFilter = ScaleForOutputFilterType::New();
-    vOutputScaleFilter->SetScale(1);
-    vOutputScaleFilter->SetShift(0);
-    typedef itk::ImageFileWriter<OutputImageType> FileWriterType;
-    FileWriterType::Pointer vFileWriter = FileWriterType::New();
  
     /* 
      * Program arguments:
@@ -1137,21 +1131,21 @@ int main(int argc, char** argv) {
         
         vDataImagePointer = vAdder->GetOutput();
         
-        typedef itk::ImageFileWriter<InternalImageType> FileWriterType;
-        FileWriterType::Pointer vFileWriter = FileWriterType::New();
-        
-//        vFileWriter->SetFileName("bgs.nrrd");
-//        vFileWriter->SetInput(vDataImagePointer);
-//        
-//        try {
-//            std::cout << "Output image is written to: " << vOutputFileName << std::endl;
-//            vFileWriter->Update();
-//        } catch (itk::ExceptionObject & e) {
-//            std::cerr << "Exception caught after starting pipeline in main():" << std::endl;
-//            std::cerr << e << std::endl;
-//            std::cerr << "bye bye." << std::endl;
-//            return 1;
-//        }
+        if(vParams.verbose && (vParams.preproc_bgs_scale > 0)) {
+           typedef itk::ImageFileWriter<InternalImageType> FileWriterTypeBS;
+           FileWriterTypeBS::Pointer vFileWriterBS = FileWriterTypeBS::New();        
+           vFileWriterBS->SetFileName("Bgs.nrrd");
+           vFileWriterBS->SetInput(vDataImagePointer);       
+           try {
+               std::cout << "Output image is written to: " << "Bgs.nrrd" << std::endl;
+               vFileWriterBS->Update();
+           } catch (itk::ExceptionObject & e) {
+               std::cerr << "Exception caught after starting pipeline in main():" << std::endl;
+               std::cerr << e << std::endl;
+               std::cerr << "bye bye." << std::endl;
+               return 1;
+           }
+        }
         
         std::cout << "finished." << std::endl;
     }
@@ -1281,24 +1275,6 @@ int main(int argc, char** argv) {
     vMaxSearchRecursiveGaussFilter->SetSigmaArray(vMaxSearchSigmaArray);
     vMaxSearchRecursiveGaussFilter->SetInput(vDataImagePointer);
 
-    // Michael Meuli: only to find optimal parameters
-    if(vParams.verbose) {
-       typedef itk::ImageFileWriter<InternalImageType> GaussFileWriterType;
-       GaussFileWriterType::Pointer vGaussFileWriter = GaussFileWriterType::New();
-       vGaussFileWriter->SetFileName("Gauss.tif");
-       vGaussFileWriter->SetInput(vMaxSearchRecursiveGaussFilter->GetOutput());
-       try {
-           std::cout << "Output image is written to: " << "Gauss.tif" << std::endl;
-           vGaussFileWriter->Update();
-       } catch (itk::ExceptionObject & e) {
-           std::cerr << "Exception caught after starting pipeline in main():" << std::endl;
-           std::cerr << e << std::endl;
-           std::cerr << "bye bye." << std::endl;
-           return 1;
-       }
-     }
-
-
     typedef itk::RegionalMaximaImageFilter<InternalImageType, LabelAbsImageType>
             RegionalMaxImageFilterType;
     RegionalMaxImageFilterType::Pointer vMaxFilter = RegionalMaxImageFilterType::New();
@@ -1337,23 +1313,6 @@ int main(int argc, char** argv) {
     } else if(vInitKind == e_spheres) {
         vDilateFilter->Update(); // ?
         vInitImagePointer = vDilateFilter->GetOutput();
-
-        // Michael Meuli: only to find optimal parameters
-        if(vParams.verbose) {
-           vOutputScaleFilter->SetInput(vDilateFilter->GetOutput());
-           vFileWriter->SetFileName("Spheres.tif");
-           vFileWriter->SetInput(vOutputScaleFilter->GetOutput());
-           try {
-               std::cout << "Output image is written to: " << "Spheres.tif" << std::endl;
-               vFileWriter->Update();
-           } catch (itk::ExceptionObject & e) {
-               std::cerr << "Exception caught after starting pipeline in main():" << std::endl;
-               std::cerr << e << std::endl;
-               std::cerr << "bye bye." << std::endl;
-               return 1;
-           }
-        }
-
     } else if(vInitKind == e_otsu) {
         typedef itk::RegionalMinimaImageFilter<InternalImageType, LabelAbsImageType>
             RegionalMinImageFilterType;
@@ -1388,7 +1347,59 @@ int main(int argc, char** argv) {
         vBlobDetFilter->Update();
         vInitImagePointer = vBlobDetFilter->GetOutput();
     }
+
+
+    // Michael Meuli: only to find optimal parameters
+    if(vParams.verbose && (vInitKind == e_spheres)) {
+       typedef itk::ImageFileWriter<InternalImageType> GaussFileWriterType;
+       GaussFileWriterType::Pointer vGaussFileWriter = GaussFileWriterType::New();
+       vGaussFileWriter->SetFileName("Gauss.nrrd");
+       vGaussFileWriter->SetInput(vMaxSearchRecursiveGaussFilter->GetOutput());
+       try {
+           std::cout << "Output image is written to: " << "Gauss.nrrd" << std::endl;
+           vGaussFileWriter->Update();
+       } catch (itk::ExceptionObject & e) {
+           std::cerr << "Exception caught after starting pipeline in main():" << std::endl;
+           std::cerr << e << std::endl;
+           std::cerr << "bye bye." << std::endl;
+           return 1;
+       }
+     }
+
+     if(vParams.verbose && (vInitKind == e_spheres)) {
+        typedef itk::ImageFileWriter<LabelAbsImageType> FileWriterTypeSpheres;
+        FileWriterTypeSpheres::Pointer vFileWriterSpheres = FileWriterTypeSpheres::New();
+        vFileWriterSpheres->SetFileName("Spheres.nrrd");     
+        vFileWriterSpheres->SetInput(vDilateFilter->GetOutput());
+        try {
+            std::cout << "Output image is written to: " << "Spheres.nrrd" << std::endl;
+            vFileWriterSpheres->Update();
+        } catch (itk::ExceptionObject & e) {
+            std::cerr << "Exception caught after starting pipeline in main():" << std::endl;
+            std::cerr << e << std::endl;
+            std::cerr << "bye bye." << std::endl;
+            return 1;
+        }
+     }
+
+     if(vParams.verbose && (vInitKind == e_blob_det)) {
+        typedef itk::ImageFileWriter<LabelAbsImageType> FileWriterTypeBlob;
+        FileWriterTypeBlob::Pointer vFileWriterBlob = FileWriterTypeBlob::New();        
+        vFileWriterBlob->SetFileName("Blobs.nrrd");
+        vFileWriterBlob->SetInput(vInitImagePointer);       
+        try {
+            std::cout << "Output image is written to: " << "Blobs.nrrd" << std::endl;
+            vFileWriterBlob->Update();
+        } catch (itk::ExceptionObject & e) {
+            std::cerr << "Exception caught after starting pipeline in main():" << std::endl;
+            std::cerr << e << std::endl;
+            std::cerr << "bye bye." << std::endl;
+            return 1;
+        }
+     }
     
+
+
     /*
      * ENERGIES:
      *      * All the shape template stuff
@@ -1706,10 +1717,26 @@ int main(int argc, char** argv) {
 
     /*
      * OUTPUT
+     *  Rescale and convert such that we get a nice output image
      */
+    typedef itk::ShiftScaleImageFilter<LabelAbsImageType, OutputImageType> ScaleForOutputFilterType;
+
+    ScaleForOutputFilterType::Pointer vOutputScaleFilter = ScaleForOutputFilterType::New();
+    vOutputScaleFilter->SetScale(1);
+    vOutputScaleFilter->SetShift(0);
+
     vOutputScaleFilter->SetInput(vSegmentationFilter->GetOutput());
+
+    /*
+     * OUTPUT:
+     *      * Write the image to the output file.
+     */
+    typedef itk::ImageFileWriter<OutputImageType> FileWriterType;
+    FileWriterType::Pointer vFileWriter = FileWriterType::New();
+    
     vFileWriter->SetFileName(vOutputFileName);
     vFileWriter->SetInput(vOutputScaleFilter->GetOutput());
+
     try {
         std::cout << "Output image is written to: " << vOutputFileName << std::endl;
         vFileWriter->Update();
@@ -1735,7 +1762,3 @@ int main(int argc, char** argv) {
 
     return 0;
 }
-
-
-
-
