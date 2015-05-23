@@ -176,6 +176,7 @@ struct params{
     /// in/output image parameters
     std::vector<float> image_spacing;
     std::string image_name;
+    std::vector<int> channels;
 
 
     /// tuning
@@ -186,7 +187,7 @@ struct params{
 
     /// operational stuff (not saved in config file)
     std::string parameter_file;
-    void setToDefault(const unsigned int);
+    void setToDefault(const unsigned int, const unsigned int);
     int load(const std::string &filename);
     void save(const std::string &filename);
 };
@@ -264,7 +265,9 @@ void params::save(const std::string& filename) {
     }
     pt.put("params.image.image_name",image_name);
 
-
+    pt.put("params.image.channels.bacteria", channels[0]);
+    pt.put("params.image.channels.lysosomes", channels[1]);
+    pt.put("params.image.channels.cells", channels[2]);
 
     /// tuning
     pt.put("params.seg.seg_cell_size",seg_cell_size);
@@ -346,8 +349,10 @@ int params::load(const std::string& filename){
 	     boost::lexical_cast<std::string, float>(vI), image_spacing[vI]);
     }
     image_name = pt.get("params.image.image_name",image_name);
-    
 
+    channels[0] = pt.get("params.image.channels.bacteria", channels[0]);
+    channels[1] = pt.get("params.image.channels.lysosomes", channels[1]);
+    channels[2] = pt.get("params.image.channels.cells", channels[2]);
 
     /// tuning
     seg_cell_size = pt.get("params.seg.seg_cell_size",seg_cell_size);
@@ -363,7 +368,7 @@ int params::load(const std::string& filename){
   return 0;
 }
 
-void params::setToDefault(const unsigned int dimension) {
+void params::setToDefault(const unsigned int dimension, const unsigned int channelSize) {
 
     preproc_do_prefilter = false;
     preproc_prefilter_sigma = 1;
@@ -418,6 +423,10 @@ void params::setToDefault(const unsigned int dimension) {
         init_rect_boarder.push_back(10);
     }
     energy_shape_centroid_coeff[0] = 1;
+
+    for(unsigned int c = 0; c < channelSize; c++) {
+        channels.push_back(c);
+    }
 #ifdef USE_GPU
     gpu_workgroupo_size = 32;
 #endif
@@ -613,6 +622,10 @@ void setParamsDescription(
     ("spacing,s",po::value< std::vector<float> >(&(aParams->image_spacing))->multitoken(),
     //->default_value(vParams.image_spacing),
     "spacing of all input images (overwrites)")
+
+    ("channels",po::value< std::vector<int> >(&(aParams->channels))->multitoken(),
+    //->default_value(vParams.channels),
+    "assignment of channels: bacteria, lysosomes, cells (default: 0 1 2)")
     
     ("sobolev_sigma",po::value<float >(&(aParams->energy_sobolev_gradient_kernel_sigma)),
     //->default_value(aParams->energy_sobolev_gradient_kernel_sigma),
@@ -638,6 +651,69 @@ void setParamsDescription(
     ("debug,d", "debug mode"); 
 }
 
+
+/*
+* Dimension
+*/
+const unsigned int DIMENSION = 3;
+const unsigned int CHANNELSIZE = 3;
+        
+/*
+* Typedefs
+*/
+typedef float RealType;
+typedef float InternalPixelType; // has to be real type
+typedef unsigned int LabelAbsPixelType; //OR TBinaryPixel
+typedef unsigned short OutputPixelType;
+typedef int LabelPixelType;
+
+typedef itk::Image<InternalPixelType, 5> InternalImageType5D;
+typedef itk::Image<InternalPixelType, 4> InternalImageType4D;
+typedef itk::Image<InternalPixelType, DIMENSION> InternalImageType;
+typedef itk::Image<OutputPixelType, DIMENSION> OutputImageType;
+typedef itk::Image<LabelAbsPixelType, DIMENSION> LabelAbsImageType; //OR TBinaryImage
+typedef itk::Image<LabelPixelType, DIMENSION> LabelImageType;
+typedef itk::FrontsCompetitionImageFilter
+            <InternalImageType, LabelAbsImageType, LabelAbsImageType> SegmenterType;
+
+InternalImageType::Pointer extractchannel(InternalImageType5D::Pointer image5D, int channelnr) {
+    typedef itk::ExtractImageFilter<InternalImageType5D, InternalImageType4D> FilterType5;
+    FilterType5::Pointer exfilter5 = FilterType5::New();
+    exfilter5->InPlaceOn();
+    exfilter5->SetDirectionCollapseToSubmatrix();
+    InternalImageType5D::RegionType inputRegion5 = image5D->GetLargestPossibleRegion();
+    InternalImageType5D::SizeType size5 = inputRegion5.GetSize();
+    size5[4] = 0;   
+    InternalImageType5D::IndexType start5 = inputRegion5.GetIndex();
+    start5[4] = channelnr;  
+    InternalImageType5D::RegionType desiredRegion5;
+    desiredRegion5.SetSize(size5);
+    desiredRegion5.SetIndex(start5);
+    exfilter5->SetExtractionRegion(desiredRegion5); 
+    exfilter5->SetInput(image5D);
+
+    typedef itk::ExtractImageFilter<InternalImageType4D, InternalImageType> FilterType4;
+    FilterType4::Pointer exfilter4 = FilterType4::New();
+    exfilter4->InPlaceOn();
+    exfilter4->SetDirectionCollapseToSubmatrix();
+    exfilter5->Update();
+    InternalImageType4D::RegionType inputRegion4 = exfilter5->GetOutput()->GetLargestPossibleRegion();
+    InternalImageType4D::SizeType size4 = inputRegion4.GetSize();
+    size4[3] = 0;   
+    InternalImageType4D::IndexType start4 = inputRegion4.GetIndex();
+    start4[3] = 0;  
+    InternalImageType4D::RegionType desiredRegion4;
+    desiredRegion4.SetSize(size4);
+    desiredRegion4.SetIndex(start4);
+    exfilter4->SetExtractionRegion(desiredRegion4); 
+    exfilter4->SetInput(exfilter5->GetOutput());
+    exfilter4->Update();
+    return exfilter4->GetOutput();
+}
+
+
+
+
 /**
  * The main function. If you think it is a bit too lengthy, you're very welcome
  * to break it down into pieces. 
@@ -652,30 +728,7 @@ void setParamsDescription(
  */
 int main(int argc, char** argv) {
 
-    /*
-     * Dimension
-     */
-    const unsigned int DIMENSION = 3;
-    std::cout << "This is region competition v1.0_dev for " << DIMENSION << " dimensions\n";
-        
-    /*
-     * Typedefs
-     */
-    typedef float RealType;
-    typedef float InternalPixelType; // has to be real type
-    typedef unsigned int LabelAbsPixelType; //OR TBinaryPixel
-    typedef unsigned short OutputPixelType;
-    typedef int LabelPixelType;
-
-    typedef itk::Image<InternalPixelType, 5> InternalImageType5D;
-    typedef itk::Image<InternalPixelType, 4> InternalImageType4D;
-    typedef itk::Image<InternalPixelType, DIMENSION> InternalImageType;
-    typedef itk::Image<OutputPixelType, DIMENSION> OutputImageType;
-    typedef itk::Image<LabelAbsPixelType, DIMENSION> LabelAbsImageType; //OR TBinaryImage
-    typedef itk::Image<LabelPixelType, DIMENSION> LabelImageType;
-    typedef itk::FrontsCompetitionImageFilter
-            <InternalImageType, LabelAbsImageType, LabelAbsImageType> SegmenterType;
-    
+        std::cout << "This is region competition v1.0_dev for " << DIMENSION << " dimensions\n";
     std::string vOutputFileName;
 
  
@@ -684,7 +737,7 @@ int main(int argc, char** argv) {
      */
 
     params vParams;
-    vParams.setToDefault(DIMENSION);
+    vParams.setToDefault(DIMENSION, CHANNELSIZE);
     
     namespace po = boost::program_options;
     po::options_description vGeneralDescriptions("General options");
@@ -923,48 +976,20 @@ int main(int argc, char** argv) {
     image5D = streamer->GetOutput();
     image5D->Update();
 
-    // DimensionOrder = XYCZT
-    typedef itk::ExtractImageFilter<InternalImageType5D, InternalImageType4D> FilterType5;
-    FilterType5::Pointer exfilter5 = FilterType5::New();
-    exfilter5->InPlaceOn();
-    exfilter5->SetDirectionCollapseToSubmatrix();
-    InternalImageType5D::RegionType inputRegion5 = image5D->GetLargestPossibleRegion();
-    InternalImageType5D::SizeType size5 = inputRegion5.GetSize();
-    size5[4] = 0;   //collapse T
-    InternalImageType5D::IndexType start5 = inputRegion5.GetIndex();
-    start5[4] = 0;  
-    InternalImageType5D::RegionType desiredRegion5;
-    desiredRegion5.SetSize(size5);
-    desiredRegion5.SetIndex(start5);
-    exfilter5->SetExtractionRegion(desiredRegion5); 
-    exfilter5->SetInput(image5D);
+    std::cout << "Bacteria channel: " << vParams.channels[0] << std::endl;   //testing
+    // DimensionOrder = XYZTC
 
-    typedef itk::ExtractImageFilter<InternalImageType4D, InternalImageType> FilterType4;
-    FilterType4::Pointer exfilter4 = FilterType4::New();
-    exfilter4->InPlaceOn();
-    exfilter4->SetDirectionCollapseToSubmatrix();
-    exfilter5->Update();
-    InternalImageType4D::RegionType inputRegion4 = exfilter5->GetOutput()->GetLargestPossibleRegion();
-    InternalImageType4D::SizeType size4 = inputRegion4.GetSize();
-    size4[3] = 0;   //collapse C
-    InternalImageType4D::IndexType start4 = inputRegion4.GetIndex();
-    start4[3] = 0;  //bacteriachannell = 0
-    InternalImageType4D::RegionType desiredRegion4;
-    desiredRegion4.SetSize(size4);
-    desiredRegion4.SetIndex(start4);
-    exfilter4->SetExtractionRegion(desiredRegion4); 
-    exfilter4->SetInput(exfilter5->GetOutput());
-    exfilter4->Update();
+    InternalImageType::Pointer image3Dbacteria = extractchannel(image5D, vParams.channels[0]);
 
     typedef itk::ChangeInformationImageFilter<InternalImageType> ChangeInformationImageFilterType;
     ChangeInformationImageFilterType::Pointer vChangeDataImgSpacingFilter =
             ChangeInformationImageFilterType::New();
-    vChangeDataImgSpacingFilter->SetInput(exfilter4->GetOutput());    //change source
+    vChangeDataImgSpacingFilter->SetInput(image3Dbacteria);    //change source
     vChangeDataImgSpacingFilter->SetChangeSpacing(true);
     vChangeDataImgSpacingFilter->SetOutputSpacing(vSpacingCL);
 
     std::cout << "Original image spacing: "
-            << exfilter4->GetOutput()->GetSpacing()                     //change source
+            << image3Dbacteria->GetSpacing()                     //change source
             << " was overridden to " << vSpacingCL << std::endl;
     vChangeDataImgSpacingFilter->Update();
     InternalImageType::Pointer vDataImagePointer = vChangeDataImgSpacingFilter->GetOutput();  
