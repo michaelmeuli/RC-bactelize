@@ -599,7 +599,8 @@ boost::program_options::options_description* aDesc,
 void setParamsDescription(
         boost::program_options::options_description* aDesc,
         params* aParams, 
-        std::string* aOutputfilename) {
+        std::string* aOutputfilename,
+        std::string* aOutputresultsname) {
 
     namespace po = boost::program_options;
 
@@ -616,6 +617,9 @@ void setParamsDescription(
     
     ("output_image,o", po::value<std::string>(aOutputfilename),
     "output image file name")
+
+    ("output_results", po::value<std::string>(aOutputresultsname),
+    "output results file name")
     
     ("params",po::value<std::string>(&(aParams->parameter_file)),"parameter filename")
     
@@ -728,9 +732,9 @@ InternalImageType::Pointer extractchannel(InternalImageType5D::Pointer image5D, 
  */
 int main(int argc, char** argv) {
 
-        std::cout << "This is region competition v1.0_dev for " << DIMENSION << " dimensions\n";
+    std::cout << "This is region competition v1.0_dev for " << DIMENSION << " dimensions\n";
     std::string vOutputFileName;
-
+    std::string vOutputResultsName;
  
     /* 
      * Program arguments:
@@ -741,7 +745,7 @@ int main(int argc, char** argv) {
     
     namespace po = boost::program_options;
     po::options_description vGeneralDescriptions("General options");
-    setParamsDescription(&vGeneralDescriptions, &vParams, &vOutputFileName);
+    setParamsDescription(&vGeneralDescriptions, &vParams, &vOutputFileName, &vOutputResultsName);
     po::options_description vEnergyDescriptions("Energy related options");
     setEnergyParamsDescription(&vEnergyDescriptions, &vParams);
     po::options_description vInitDescriptions("Initialization related options");
@@ -794,7 +798,7 @@ int main(int argc, char** argv) {
         /// in the config file.
         po::variables_map variables_map;
         po::options_description vDescriptions("Allowed options");
-        setParamsDescription(&vDescriptions, &vParams, &vOutputFileName);
+        setParamsDescription(&vDescriptions, &vParams, &vOutputFileName, &vOutputResultsName);
         po::store(po::command_line_parser(argc, argv).options(vDescriptions).positional(p_desc).run(), 
 	      variables_map);//, po::command_line_style::unix_style ^ po::command_line_style::allow_short);
         po::notify(variables_map);
@@ -1784,6 +1788,13 @@ int main(int argc, char** argv) {
      */
     vTimer.Stop();
     std::cout << "Finished! - Time used: " << vTimer.GetTotal() << "s" << std::endl;
+
+
+    std::ofstream fileout;
+    fileout.open(vOutputResultsName.c_str(), std::ofstream::app); 
+    fileout << argv[1] << std::endl;
+    fileout.close();
+
 
     return 0;
 }
