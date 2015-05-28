@@ -112,6 +112,9 @@
 #include "itkCastImageFilter.h"
 #include "itkImageIOBase.h"
 #include "itkSCIFIOImageIO.h"
+#include "itkLabelImageToShapeLabelMapFilter.h"
+#include "itkStatisticsLabelMapFilter.h"
+#include "itkStatisticsLabelObject.h"
 
 #ifdef USE_GPU
 #include "itkRCGPUPiecewiseConstantSquareDistCurvatureRegEnergy.h"
@@ -980,20 +983,23 @@ int main(int argc, char** argv) {
     image5D = streamer->GetOutput();
     image5D->Update();
 
-    std::cout << "Bacteria channel: " << vParams.channels[0] << std::endl;   //testing
-    // DimensionOrder = XYZTC
+    if(vParams.verbose) {
+        std::cout << "Bacteria channel: " << vParams.channels[0] << std::endl;
+        std::cout << "Lysosome channel: " << vParams.channels[1] << std::endl;
+        std::cout << "Phagosome channel: " << vParams.channels[2] << std::endl;
+    }
 
     InternalImageType::Pointer image3Dbacteria = extractchannel(image5D, vParams.channels[0]);
 
     typedef itk::ChangeInformationImageFilter<InternalImageType> ChangeInformationImageFilterType;
     ChangeInformationImageFilterType::Pointer vChangeDataImgSpacingFilter =
             ChangeInformationImageFilterType::New();
-    vChangeDataImgSpacingFilter->SetInput(image3Dbacteria);    //change source
+    vChangeDataImgSpacingFilter->SetInput(image3Dbacteria);    
     vChangeDataImgSpacingFilter->SetChangeSpacing(true);
     vChangeDataImgSpacingFilter->SetOutputSpacing(vSpacingCL);
 
-    std::cout << "Original image spacing: "
-            << image3Dbacteria->GetSpacing()                     //change source
+    std::cout << "Original image spacing of image3Dbacteria: "
+            << image3Dbacteria->GetSpacing()                     
             << " was overridden to " << vSpacingCL << std::endl;
     vChangeDataImgSpacingFilter->Update();
     InternalImageType::Pointer vDataImagePointer = vChangeDataImgSpacingFilter->GetOutput();  
@@ -1166,7 +1172,7 @@ int main(int argc, char** argv) {
            vFileWriterBS->SetFileName("Bgs.nrrd");
            vFileWriterBS->SetInput(vDataImagePointer);       
            try {
-               std::cout << "Output image is written to: " << "Bgs.nrrd" << std::endl;
+               std::cout << "Backgroud substracted image is written to: " << "Bgs.nrrd" << std::endl;
                vFileWriterBS->Update();
            } catch (itk::ExceptionObject & e) {
                std::cerr << "Exception caught after starting pipeline in main():" << std::endl;
@@ -1417,7 +1423,7 @@ int main(int argc, char** argv) {
         vFileWriterBlob->SetFileName("Blobs.nrrd");
         vFileWriterBlob->SetInput(vInitImagePointer);       
         try {
-            std::cout << "Output image is written to: " << "Blobs.nrrd" << std::endl;
+            std::cout << "Blobs image is written to: " << "Blobs.nrrd" << std::endl;
             vFileWriterBlob->Update();
         } catch (itk::ExceptionObject & e) {
             std::cerr << "Exception caught after starting pipeline in main():" << std::endl;
@@ -1767,7 +1773,7 @@ int main(int argc, char** argv) {
     vFileWriter->SetInput(vOutputScaleFilter->GetOutput());
 
     try {
-        std::cout << "Output image is written to: " << vOutputFileName << std::endl;
+        std::cout << "Labled image is written to: " << vOutputFileName << std::endl;
         vFileWriter->Update();
     } catch (itk::ExceptionObject & e) {
         std::cerr << "Exception caught after starting pipeline in main():" << std::endl;
@@ -1790,10 +1796,49 @@ int main(int argc, char** argv) {
     std::cout << "Finished! - Time used: " << vTimer.GetTotal() << "s" << std::endl;
 
 
+InternalImageType::Pointer image3Dlysosomes = extractchannel(image5D, vParams.channels[1]);
+
+
+    vChangeDataImgSpacingFilter->SetInput(image3Dlysosomes);   
+    vChangeDataImgSpacingFilter->SetChangeSpacing(true);
+    vChangeDataImgSpacingFilter->SetOutputSpacing(vSpacingCL);
+
+    std::cout << "Original image spacing of image3Dlysosomes: "
+              << image3Dlysosomes->GetSpacing()                     
+              << " was overridden to " << vSpacingCL << std::endl;
+    vChangeDataImgSpacingFilter->Update();
+
+typedef itk::LabelImageToShapeLabelMapFilter< LabelAbsImageType, itk::LabelMap< itk::StatisticsLabelObject< InternalImageType::PixelType, InternalImageType::ImageDimension > > > LabelImageToShapeLabelMapFilterType;
+typedef itk::StatisticsLabelMapFilter< LabelImageToShapeLabelMapFilterType::OutputImageType, InternalImageType> StatisticsLabelMapFilterType;
+
+    LabelImageToShapeLabelMapFilterType::Pointer labelImageToShapeLabelMapFilter = LabelImageToShapeLabelMapFilterType::New();
+    labelImageToShapeLabelMapFilter->SetInput(vSegmentationFilter->GetOutput());
+    labelImageToShapeLabelMapFilter->Update();
+    StatisticsLabelMapFilterType::Pointer statisticsLabelMapFilter = StatisticsLabelMapFilterType::New();
+    statisticsLabelMapFilter->SetInput1(labelImageToShapeLabelMapFilter->GetOutput());
+    statisticsLabelMapFilter->SetInput2(vChangeDataImgSpacingFilter->GetOutput());   //image3Dlysosomes
+    statisticsLabelMapFilter->InPlaceOn();
+    statisticsLabelMapFilter->Update();
+
     std::ofstream fileout;
     fileout.open(vOutputResultsName.c_str(), std::ofstream::app); 
-    fileout << argv[1] << std::endl;
+    fileout << argv[1] << "\t";
+
+    unsigned int bacteriacount = statisticsLabelMapFilter->GetOutput()->GetNumberOfLabelObjects();
+    for(unsigned int i = 0; i < statisticsLabelMapFilter->GetOutput()->GetNumberOfLabelObjects(); i++) {
+      StatisticsLabelMapFilterType::OutputImageType::LabelObjectType* labelObjectMe = 
+        statisticsLabelMapFilter->GetOutput()->GetNthLabelObject(i);
+      double mean = labelObjectMe->GetMean();
+      fileout << mean << "\t";
+      std::cout << "Mean value of object with label " << static_cast<int>(labelObjectMe->GetLabel()) << " in lysosomechannel: " 
+                << mean << std::endl; 
+      }
+    fileout << "\n";
     fileout.close();
+    std::cout << "Total bacteria counted (in statisticsLabelMapFilter): " << bacteriacount << std::endl;
+    std::cout << std::endl;  
+
+
 
 
     return 0;
