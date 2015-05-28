@@ -115,6 +115,7 @@
 #include "itkLabelImageToShapeLabelMapFilter.h"
 #include "itkStatisticsLabelMapFilter.h"
 #include "itkStatisticsLabelObject.h"
+#include "itkVector.h"
 
 #ifdef USE_GPU
 #include "itkRCGPUPiecewiseConstantSquareDistCurvatureRegEnergy.h"
@@ -717,6 +718,12 @@ InternalImageType::Pointer extractchannel(InternalImageType5D::Pointer image5D, 
     exfilter4->Update();
     return exfilter4->GetOutput();
 }
+
+
+struct objectStruct{
+    int label;
+    double mean_lysosome;
+};
 
 
 
@@ -1820,26 +1827,32 @@ typedef itk::StatisticsLabelMapFilter< LabelImageToShapeLabelMapFilterType::Outp
     statisticsLabelMapFilter->InPlaceOn();
     statisticsLabelMapFilter->Update();
 
-    std::ofstream fileout;
-    fileout.open(vOutputResultsName.c_str(), std::ofstream::app); 
-    fileout << argv[1] << "\t";
 
-    unsigned int bacteriacount = statisticsLabelMapFilter->GetOutput()->GetNumberOfLabelObjects();
+
+    std::vector<objectStruct> vObjects;
+
     for(unsigned int i = 0; i < statisticsLabelMapFilter->GetOutput()->GetNumberOfLabelObjects(); i++) {
-      StatisticsLabelMapFilterType::OutputImageType::LabelObjectType* labelObjectMe = 
-        statisticsLabelMapFilter->GetOutput()->GetNthLabelObject(i);
-      double mean = labelObjectMe->GetMean();
-      fileout << mean << "\t";
-      std::cout << "Mean value of object with label " << static_cast<int>(labelObjectMe->GetLabel()) << " in lysosomechannel: " 
-                << mean << std::endl; 
-      }
-    fileout << "\n";
-    fileout.close();
-    std::cout << "Total bacteria counted (in statisticsLabelMapFilter): " << bacteriacount << std::endl;
-    std::cout << std::endl;  
+        objectStruct objectValues;
+        StatisticsLabelMapFilterType::OutputImageType::LabelObjectType* labelObject = 
+            statisticsLabelMapFilter->GetOutput()->GetNthLabelObject(i);
+
+        objectValues.label = static_cast<int>(labelObject->GetLabel());
+        objectValues.mean_lysosome = labelObject->GetMean();
+	vObjects.push_back(objectValues);
+       
+        std::cout << "Mean value of object with label " << static_cast<int>(labelObject->GetLabel()) << " in lysosomechannel: " 
+                  << labelObject->GetMean() << std::endl; 
+    }
+
+    for(unsigned int i = 0; i < vObjects.size(); ++i) {
+        std::ofstream fileout;
+        fileout.open(vOutputResultsName.c_str(), std::ofstream::app); 
+        fileout << argv[1] << "\t" << vObjects[i].label << "\t" << vObjects[i].mean_lysosome << "\n";
+        fileout.close();
+    }
 
 
-
+ 
 
     return 0;
 }
