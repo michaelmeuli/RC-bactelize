@@ -722,7 +722,15 @@ InternalImageType::Pointer extractchannel(InternalImageType5D::Pointer image5D, 
 
 struct objectStruct{
     int label;
+    double x;
+    double y;
+    double z;
+    double physicalSize;
+    int numberOfPixels;
+    double maxDiameter;
+    double roundness;
     double mean_lysosome;
+    double mean_macrophage;
 };
 
 
@@ -1003,11 +1011,13 @@ int main(int argc, char** argv) {
             ChangeInformationImageFilterType::New();
     vChangeDataImgSpacingFilter->SetInput(image3Dbacteria);    
     vChangeDataImgSpacingFilter->SetChangeSpacing(true);
-    vChangeDataImgSpacingFilter->SetOutputSpacing(vSpacingCL);
+    InternalImageType::SpacingType vSpacingBadHack;              //because --init_mode blob_det doesn't work with --spacing
+    vSpacingBadHack.Fill(1);                                     //vSpacingCL replaced with vSpacingBadHack
+    vChangeDataImgSpacingFilter->SetOutputSpacing(vSpacingBadHack);
 
     std::cout << "Original image spacing of image3Dbacteria: "
-            << image3Dbacteria->GetSpacing()                     
-            << " was overridden to " << vSpacingCL << std::endl;
+              << image3Dbacteria->GetSpacing()                     
+              << " was overridden to " << vSpacingBadHack << std::endl;
     vChangeDataImgSpacingFilter->Update();
     InternalImageType::Pointer vDataImagePointer = vChangeDataImgSpacingFilter->GetOutput();  
     
@@ -1802,52 +1812,103 @@ int main(int argc, char** argv) {
     vTimer.Stop();
     std::cout << "Finished! - Time used: " << vTimer.GetTotal() << "s" << std::endl;
 
+    //because --init_mode blob_det doesn't work with --spacing
+    //vSpacingCL replaced with vSpacingBadHack
+    typedef itk::ChangeInformationImageFilter<LabelAbsImageType> ChangeInformationImageFilterTypeSeg;
+    ChangeInformationImageFilterTypeSeg::Pointer vChangeDataImgSpacingFilterSeg = ChangeInformationImageFilterTypeSeg::New();
+    vChangeDataImgSpacingFilterSeg->SetInput(vSegmentationFilter->GetOutput());   
+    vChangeDataImgSpacingFilterSeg->SetChangeSpacing(true);
+    vChangeDataImgSpacingFilterSeg->SetOutputSpacing(vSpacingCL);
+    std::cout << "Original image spacing of vSegmentationFilter->GetOutput(): "
+              << vSegmentationFilter->GetOutput()->GetSpacing()                     
+              << " was overridden to " << vSpacingCL << std::endl;
+    vChangeDataImgSpacingFilterSeg->Update();
 
-InternalImageType::Pointer image3Dlysosomes = extractchannel(image5D, vParams.channels[1]);
 
-
-    vChangeDataImgSpacingFilter->SetInput(image3Dlysosomes);   
-    vChangeDataImgSpacingFilter->SetChangeSpacing(true);
-    vChangeDataImgSpacingFilter->SetOutputSpacing(vSpacingCL);
-
+    typedef itk::ChangeInformationImageFilter<InternalImageType> ChangeInformationImageFilterType23;
+    ChangeInformationImageFilterType23::Pointer vChangeDataImgSpacingFilter2 = ChangeInformationImageFilterType23::New();
+    InternalImageType::Pointer image3Dlysosomes = extractchannel(image5D, vParams.channels[1]);
+    vChangeDataImgSpacingFilter2->SetInput(image3Dlysosomes);   
+    vChangeDataImgSpacingFilter2->SetChangeSpacing(true);
+    vChangeDataImgSpacingFilter2->SetOutputSpacing(vSpacingCL);
     std::cout << "Original image spacing of image3Dlysosomes: "
               << image3Dlysosomes->GetSpacing()                     
               << " was overridden to " << vSpacingCL << std::endl;
-    vChangeDataImgSpacingFilter->Update();
+    vChangeDataImgSpacingFilter2->Update();
 
-typedef itk::LabelImageToShapeLabelMapFilter< LabelAbsImageType, itk::LabelMap< itk::StatisticsLabelObject< InternalImageType::PixelType, InternalImageType::ImageDimension > > > LabelImageToShapeLabelMapFilterType;
-typedef itk::StatisticsLabelMapFilter< LabelImageToShapeLabelMapFilterType::OutputImageType, InternalImageType> StatisticsLabelMapFilterType;
+    typedef itk::LabelImageToShapeLabelMapFilter< LabelAbsImageType, itk::LabelMap
+        < itk::StatisticsLabelObject< InternalImageType::PixelType, InternalImageType::ImageDimension > > > 
+        LabelImageToShapeLabelMapFilterType;
+    typedef itk::StatisticsLabelMapFilter< LabelImageToShapeLabelMapFilterType::OutputImageType, InternalImageType >   
+        StatisticsLabelMapFilterType;
 
     LabelImageToShapeLabelMapFilterType::Pointer labelImageToShapeLabelMapFilter = LabelImageToShapeLabelMapFilterType::New();
-    labelImageToShapeLabelMapFilter->SetInput(vSegmentationFilter->GetOutput());
+    labelImageToShapeLabelMapFilter->SetInput(vChangeDataImgSpacingFilterSeg->GetOutput());
     labelImageToShapeLabelMapFilter->Update();
     StatisticsLabelMapFilterType::Pointer statisticsLabelMapFilter = StatisticsLabelMapFilterType::New();
     statisticsLabelMapFilter->SetInput1(labelImageToShapeLabelMapFilter->GetOutput());
-    statisticsLabelMapFilter->SetInput2(vChangeDataImgSpacingFilter->GetOutput());   //image3Dlysosomes
+    statisticsLabelMapFilter->SetInput2(vChangeDataImgSpacingFilter2->GetOutput());   //image3Dlysosomes
     statisticsLabelMapFilter->InPlaceOn();
     statisticsLabelMapFilter->Update();
 
-
-
     std::vector<objectStruct> vObjects;
-
     for(unsigned int i = 0; i < statisticsLabelMapFilter->GetOutput()->GetNumberOfLabelObjects(); i++) {
         objectStruct objectValues;
         StatisticsLabelMapFilterType::OutputImageType::LabelObjectType* labelObject = 
             statisticsLabelMapFilter->GetOutput()->GetNthLabelObject(i);
-
         objectValues.label = static_cast<int>(labelObject->GetLabel());
+
+        StatisticsLabelMapFilterType::OutputImageType::LabelObjectType::CentroidType centroid = 
+            labelObject->GetCentroid ();     
+        objectValues.x = centroid[0];
+        objectValues.y = centroid[1];
+        objectValues.z = centroid[2];
+        objectValues.physicalSize = labelObject->GetPhysicalSize();
+        objectValues.numberOfPixels = labelObject->GetNumberOfPixels();
+        double maxDiameter = 0.0;  
+        StatisticsLabelMapFilterType::OutputImageType::LabelObjectType::VectorType ellipsoidVector = 
+            labelObject->GetEquivalentEllipsoidDiameter();
+        for ( unsigned int vd = 0; vd < ellipsoidVector.GetVectorDimension(); ++vd ) {
+            if (maxDiameter < ellipsoidVector[vd]) {
+                maxDiameter = ellipsoidVector[vd];
+            }
+        }
+        objectValues.maxDiameter = maxDiameter;
+        objectValues.roundness = labelObject->GetRoundness();
         objectValues.mean_lysosome = labelObject->GetMean();
 	vObjects.push_back(objectValues);
-       
-        std::cout << "Mean value of object with label " << static_cast<int>(labelObject->GetLabel()) << " in lysosomechannel: " 
-                  << labelObject->GetMean() << std::endl; 
     }
 
+    //Get mean in Macrophage channel
+    ChangeInformationImageFilterType23::Pointer vChangeDataImgSpacingFilter3 = ChangeInformationImageFilterType23::New();
+    InternalImageType::Pointer image3Dmacrophage = extractchannel(image5D, vParams.channels[2]);
+    vChangeDataImgSpacingFilter3->SetInput(image3Dmacrophage);   
+    vChangeDataImgSpacingFilter3->SetChangeSpacing(true);
+    vChangeDataImgSpacingFilter3->SetOutputSpacing(vSpacingCL);
+    std::cout << "Original image spacing of image3Dmacrophage: "
+              << image3Dmacrophage->GetSpacing()                     
+              << " was overridden to " << vSpacingCL << std::endl;
+    vChangeDataImgSpacingFilter3->Update();
+
+    statisticsLabelMapFilter->SetInput2(vChangeDataImgSpacingFilter3->GetOutput()); 
+    statisticsLabelMapFilter->InPlaceOn();
+    statisticsLabelMapFilter->Update();
+
+    for(unsigned int i = 0; i < statisticsLabelMapFilter->GetOutput()->GetNumberOfLabelObjects(); i++) {
+        StatisticsLabelMapFilterType::OutputImageType::LabelObjectType* labelObject = 
+            statisticsLabelMapFilter->GetOutput()->GetNthLabelObject(i);
+        vObjects[i].mean_macrophage = labelObject->GetMean();
+    }
+
+    //Print values to file
     for(unsigned int i = 0; i < vObjects.size(); ++i) {
         std::ofstream fileout;
         fileout.open(vOutputResultsName.c_str(), std::ofstream::app); 
-        fileout << argv[1] << "\t" << vObjects[i].label << "\t" << vObjects[i].mean_lysosome << "\n";
+        fileout << argv[1] << "\t" << vObjects[i].label << "\t" 
+                << vObjects[i].x << "\t" << vObjects[i].y << "\t" << vObjects[i].z << "\t" 
+                << vObjects[i].physicalSize << "\t" << vObjects[i].numberOfPixels << "\t" 
+                << vObjects[i].maxDiameter << "\t" << vObjects[i].roundness << "\t"
+                << vObjects[i].mean_lysosome << "\t" << vObjects[i].mean_macrophage << "\n";
         fileout.close();
     }
 
