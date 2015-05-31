@@ -380,7 +380,7 @@ void params::setToDefault(const unsigned int dimension, const unsigned int chann
     init_mode = "spheres";
 
     seg_debug = false;
-    verbose = true;
+    verbose = false;
     seg_use_gpu = false;
     preproc_do_masking = false;
     preproc_mask_image = "";
@@ -931,6 +931,12 @@ int main(int argc, char** argv) {
         std::cerr << "Wrong initialization mode. Bye bye." << std::endl;
         return 1;
     }
+
+
+    if(variables_map.count("verbose")){
+        vParams.verbose = true;
+    }
+
 
     /*
      * Start time measurement

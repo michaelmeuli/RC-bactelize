@@ -1,7 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
 
 # The main project, this defines the projects root src path
-PROJECT(RegionCompetition_project)
+PROJECT(RC-bactelize_project)
 
 # Find boost
 FIND_PACKAGE(Boost REQUIRED)
@@ -41,9 +41,9 @@ INCLUDE_DIRECTORIES(${SRC_DIRS})
 
 SET(CMAKE_VERBOSE_MAKEFILE ON)
 
-ADD_EXECUTABLE(RegionCompetition main.cxx)
+ADD_EXECUTABLE(RC-bactelize main.cxx)
 
-TARGET_LINK_LIBRARIES(RegionCompetition boost_program_options ${ITK_LIBRARIES})
+TARGET_LINK_LIBRARIES(RC-bactelize boost_program_options ${ITK_LIBRARIES})
 if (USE_GPU)
-	TARGET_LINK_LIBRARIES(RegionCompetition OpenCL)
+	TARGET_LINK_LIBRARIES(RC-bactelize OpenCL)
 endif()
