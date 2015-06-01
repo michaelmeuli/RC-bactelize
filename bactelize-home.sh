@@ -1,7 +1,7 @@
 #!/bin/bash
 
 FILES=/home/michael/batch/in/*.tif
-FullProgramPath=/home/michael/Bioimage/RC_release_v1.0/RC-bactelize/B3D/RC-bactelize
+FullProgramPath=/home/michael/bioimage/RC-bactelize/B/RC-bactelize
 OutDir=/home/michael/batch/out
 ResultFilename=AA_result.txt
 
