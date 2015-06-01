@@ -46,7 +46,10 @@
 #include <boost/program_options/variables_map.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/filesystem.hpp>
 #include <map>
+
+#include <boost/system/error_code.hpp>
 
 #include "itkImageSource.h"
 #include "itkImageFileReader.h"
@@ -1905,6 +1908,9 @@ int main(int argc, char** argv) {
             statisticsLabelMapFilter->GetOutput()->GetNthLabelObject(i);
         vObjects[i].mean_macrophage = labelObject->GetMean();
     }
+
+    boost::filesystem::path p (argv[1]);
+    std::cout << "filename only          : " << p.stem() << std::endl;  
 
     //Print values to file
     for(unsigned int i = 0; i < vObjects.size(); ++i) {
