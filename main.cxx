@@ -1910,13 +1910,17 @@ int main(int argc, char** argv) {
     }
 
     boost::filesystem::path p (argv[1]);
-    std::cout << "filename only          : " << p.stem() << std::endl;  
+    std::string filenameStem = p.stem().string();
+    int found;
+    found = filenameStem.find_first_of("-");
+    std::string coverslipNr = filenameStem.substr(0,found);
+    std::string imageNr = filenameStem.substr(found+1);
 
     //Print values to file
     for(unsigned int i = 0; i < vObjects.size(); ++i) {
         std::ofstream fileout;
         fileout.open(vOutputResultsName.c_str(), std::ofstream::app); 
-        fileout << argv[1] << "\t" << vObjects[i].label << "\t" 
+        fileout << coverslipNr << "\t" << imageNr << "\t" << vObjects[i].label << "\t" 
                 << vObjects[i].x << "\t" << vObjects[i].y << "\t" << vObjects[i].z << "\t" 
                 << vObjects[i].physicalSize << "\t" << vObjects[i].numberOfPixels << "\t" 
                 << vObjects[i].maxDiameter << "\t" << vObjects[i].roundness << "\t"

@@ -12,8 +12,8 @@ else
     i=1
     for f in $FILES
     do
-        echo "Moving $f to $OUTDIR/$1$i"
-        mv "$f" "$OUTDIR/$1$i"
+        echo "Moving $f to $OUTDIR/$1$i.tif"
+        mv "$f" "$OUTDIR/$1$i.tif"
         i=$((i+1))
     done
  
