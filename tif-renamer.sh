@@ -2,7 +2,7 @@
 
 if [ -z ${1+x} ]
 then
-    echo "Error! Give first part of new filename as parameter (1A, 1B, ...)" 1>&2
+    echo "Error! Give first part of new filename as parameter: 1- (first coverslip), 2- (second coverslip), ..." 1>&2
     exit 1
 else 
 
