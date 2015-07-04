@@ -12,3 +12,5 @@ do
     echo "Processing file: $f"
     $FullProgramPath "$f" -i 200 --no_fusion --no_fission --no_handle --init_mode blob_det --init_blob_min 14 --init_blob_max 24 --disc_upper -e ps --spacing 0.1802 0.1802 0.2985 --output_image "$OutDir/${g%.tif}-labeled.tif" --output_results $OutDir/$ResultFilename
 done
+
+#cover	imageNr 	label 	x 	y 	z 	physicalSize 	Pixels 	maxDiameter 	minDiameter 	roundness 	lysosome	macrophage

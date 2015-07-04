@@ -731,6 +731,7 @@ struct objectStruct{
     double physicalSize;
     int numberOfPixels;
     double maxDiameter;
+    double minDiameter;
     double roundness;
     double mean_lysosome;
     double mean_macrophage;
@@ -1874,15 +1875,20 @@ int main(int argc, char** argv) {
         objectValues.z = centroid[2];
         objectValues.physicalSize = labelObject->GetPhysicalSize();
         objectValues.numberOfPixels = labelObject->GetNumberOfPixels();
-        double maxDiameter = 0.0;  
         StatisticsLabelMapFilterType::OutputImageType::LabelObjectType::VectorType ellipsoidVector = 
             labelObject->GetEquivalentEllipsoidDiameter();
-        for ( unsigned int vd = 0; vd < ellipsoidVector.GetVectorDimension(); ++vd ) {
+	double maxDiameter = ellipsoidVector[0]; 
+	double minDiameter = ellipsoidVector[0]; 
+        for ( unsigned int vd = 1; vd < ellipsoidVector.GetVectorDimension(); ++vd ) {
             if (maxDiameter < ellipsoidVector[vd]) {
                 maxDiameter = ellipsoidVector[vd];
             }
+            if (minDiameter > ellipsoidVector[vd]) {
+                minDiameter = ellipsoidVector[vd];
+            }
         }
         objectValues.maxDiameter = maxDiameter;
+        objectValues.minDiameter = minDiameter;
         objectValues.roundness = labelObject->GetRoundness();
         objectValues.mean_lysosome = labelObject->GetMean();
 	vObjects.push_back(objectValues);
@@ -1923,7 +1929,7 @@ int main(int argc, char** argv) {
         fileout << coverslipNr << "\t" << imageNr << "\t" << vObjects[i].label << "\t" 
                 << vObjects[i].x << "\t" << vObjects[i].y << "\t" << vObjects[i].z << "\t" 
                 << vObjects[i].physicalSize << "\t" << vObjects[i].numberOfPixels << "\t" 
-                << vObjects[i].maxDiameter << "\t" << vObjects[i].roundness << "\t"
+                << vObjects[i].maxDiameter << "\t" << vObjects[i].minDiameter << "\t" << vObjects[i].roundness << "\t"
                 << vObjects[i].mean_lysosome << "\t" << vObjects[i].mean_macrophage << "\n";
         fileout.close();
     }
