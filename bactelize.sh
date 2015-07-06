@@ -1,16 +1,23 @@
 #!/bin/bash
 
-FILES=/home/michael/batch/in/*.tif
-FullProgramPath=/home/michael/Bioimage/RC_release_v1.0/RC-bactelize/B3D/RC-bactelize
-OutDir=/home/michael/batch/out
-ResultFilename=1-1-A_result.txt
+FILES=/home/mmeuli/batch/in/*.tif
+FullProgramPath=/home/mmeuli/Bioimage/RC-bactelize/build-20150629/RC-bactelize
+OutDir=/home/mmeuli/batch/out
+# ResultFilename=1-1-A_result.txt
 
 shopt -s nullglob
-for f in $FILES
-do
-    g=`basename "$f"`
-    echo "Processing file: $f"
-    $FullProgramPath "$f" -i 200 --no_fusion --no_fission --no_handle --init_mode blob_det --init_blob_min 14 --init_blob_max 24 --disc_upper -e ps --spacing 0.1802 0.1802 0.2985 --output_image "$OutDir/${g%.tif}-labeled.tif" --output_results $OutDir/$ResultFilename
-done
 
-#cover	imageNr 	label 	x 	y 	z 	physicalSize 	Pixels 	maxDiameter 	minDiameter 	roundness 	lysosome	macrophage
+parallel --jobs 6 --xapply $FullProgramPath "{}" -i 200 --no_fusion --no_fission --no_handle --init_mode blob_det --init_blob_min 36 --init_blob_max 46 --disc_upper -e ps --spacing 0.0616 0.0616 0.1998 --output_image "$OutDir"/{/.}-labeled.tif --output_results "$OutDir"/{/.}-result.txt ::: $FILES
+
+
+if [ $? -eq 0 ]; then
+    echo OK, collecting x-x-resut.txt into 1-1-A_result.txt
+    cat "$OutDir"/*.txt >> "$OutDir"/1-1-A_result.txt
+else
+    echo FAIL
+fi
+
+
+
+
+

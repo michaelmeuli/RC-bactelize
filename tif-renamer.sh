@@ -6,8 +6,8 @@ then
     exit 1
 else 
 
-    FILES=/home/michael/batch/tif-orig/*.tif
-    OUTDIR=/home/michael/batch/in
+    FILES=/home/mmeuli/batch/tif-orig/*.tif
+    OUTDIR=/home/mmeuli/batch/in
     shopt -s nullglob
     i=1
     for f in $FILES
