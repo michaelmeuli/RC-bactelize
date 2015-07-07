@@ -1,7 +1,7 @@
 #!/bin/bash
 
 FILES=/home/mmeuli/batch/in/*.tif
-FullProgramPath=/home/mmeuli/Bioimage/RC-bactelize/build-20150629/RC-bactelize
+FullProgramPath=/home/mmeuli/Bioimage/RC-bactelize/build-20150706/RC-bactelize
 OutDir=/home/mmeuli/batch/out
 # ResultFilename=1-1-A_result.txt
 
