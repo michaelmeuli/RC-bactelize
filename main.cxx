@@ -1016,6 +1016,36 @@ int main(int argc, char** argv) {
 
     InternalImageType::Pointer image3Dbacteria = extractchannel(image5D, vParams.channels[0]);
 
+    boost::filesystem::path pp (vOutputFileName);
+    std::string parentPath = pp.parent_path().string();
+    std::cout << parentPath << std::endl;
+
+    boost::filesystem::path p (argv[1]);
+    std::string filenameStem = p.stem().string();
+    int found;
+    found = filenameStem.find_first_of("-");
+    std::string coverslipNr = filenameStem.substr(0,found);
+    std::string imageNr = filenameStem.substr(found+1);
+
+    std::stringstream vOutBac;
+    vOutBac << parentPath << "/"
+            << coverslipNr << "-"
+            << imageNr << "-bacteria.tif";
+    std::string vOutputFileNameBacteria;
+    vOutputFileNameBacteria = vOutBac.str();
+
+    typedef itk::ShiftScaleImageFilter<InternalImageType, OutputImageType> ScaleForOutputFilterTypeIn;
+    ScaleForOutputFilterTypeIn::Pointer vOutputScaleFilterIn = ScaleForOutputFilterTypeIn::New();
+    vOutputScaleFilterIn->SetScale(1);
+    vOutputScaleFilterIn->SetShift(0);
+    vOutputScaleFilterIn->SetInput(image3Dbacteria);
+    typedef itk::ImageFileWriter<OutputImageType> FileWriterTypeIn;
+    FileWriterTypeIn::Pointer vFileWriterIn = FileWriterTypeIn::New();
+    vFileWriterIn->SetFileName(vOutputFileNameBacteria);
+    vFileWriterIn->SetInput(vOutputScaleFilterIn->GetOutput());
+    std::cout << "Bacteria image is written to: " << vOutputFileNameBacteria << std::endl;
+    vFileWriterIn->Update();
+
     typedef itk::ChangeInformationImageFilter<InternalImageType> ChangeInformationImageFilterType;
     ChangeInformationImageFilterType::Pointer vChangeDataImgSpacingFilter =
             ChangeInformationImageFilterType::New();
@@ -1029,6 +1059,10 @@ int main(int argc, char** argv) {
               << image3Dbacteria->GetSpacing()                     
               << " was overridden to " << vSpacingBadHack << std::endl;
     vChangeDataImgSpacingFilter->Update();
+
+
+
+
     InternalImageType::Pointer vDataImagePointer = vChangeDataImgSpacingFilter->GetOutput();  
     
     /*
@@ -1781,46 +1815,6 @@ int main(int argc, char** argv) {
      * OUTPUT
      *  Rescale and convert such that we get a nice output image
      */
-    typedef itk::ShiftScaleImageFilter<LabelAbsImageType, OutputImageType> ScaleForOutputFilterType;
-
-    ScaleForOutputFilterType::Pointer vOutputScaleFilter = ScaleForOutputFilterType::New();
-    vOutputScaleFilter->SetScale(1);
-    vOutputScaleFilter->SetShift(0);
-
-    vOutputScaleFilter->SetInput(vSegmentationFilter->GetOutput());
-
-    /*
-     * OUTPUT:
-     *      * Write the image to the output file.
-     */
-    typedef itk::ImageFileWriter<OutputImageType> FileWriterType;
-    FileWriterType::Pointer vFileWriter = FileWriterType::New();
-    
-    vFileWriter->SetFileName(vOutputFileName);
-    vFileWriter->SetInput(vOutputScaleFilter->GetOutput());
-
-    try {
-        std::cout << "Labled image is written to: " << vOutputFileName << std::endl;
-        vFileWriter->Update();
-    } catch (itk::ExceptionObject & e) {
-        std::cerr << "Exception caught after starting pipeline in main():" << std::endl;
-        std::cerr << e << std::endl;
-        std::cerr << "bye bye." << std::endl;
-        return 1;
-    }
-
-    /*
-     * OUTPUT
-     *      * Write the parameter file
-     */
-    vParams.save(vOutputFileName + ".json");
-    
-    /* 
-     * OUTPUT
-     *      * End time measurement
-     */
-    vTimer.Stop();
-    std::cout << "Finished! - Time used: " << vTimer.GetTotal() << "s" << std::endl;
 
     //because --init_mode blob_det doesn't work with --spacing
     //vSpacingCL replaced with vSpacingBadHack
@@ -1829,15 +1823,47 @@ int main(int argc, char** argv) {
     vChangeDataImgSpacingFilterSeg->SetInput(vSegmentationFilter->GetOutput());   
     vChangeDataImgSpacingFilterSeg->SetChangeSpacing(true);
     vChangeDataImgSpacingFilterSeg->SetOutputSpacing(vSpacingCL);
+    vChangeDataImgSpacingFilterSeg->Update();
+
+
+    /* 
+     * OUTPUT
+     *      * End time measurement
+     */
+    vTimer.Stop();
+    std::cout << "Finished! - Time used: " << vTimer.GetTotal() << "s" << std::endl;
+
+
+
     std::cout << "Original image spacing of vSegmentationFilter->GetOutput(): "
               << vSegmentationFilter->GetOutput()->GetSpacing()                     
               << " was overridden to " << vSpacingCL << std::endl;
-    vChangeDataImgSpacingFilterSeg->Update();
+
+
+    typedef itk::ShiftScaleImageFilter<LabelAbsImageType, OutputImageType> ScaleForOutputFilterTypeLabeled;
+    ScaleForOutputFilterTypeLabeled::Pointer vOutputScaleFilterLabeled = ScaleForOutputFilterTypeLabeled::New();
+    vOutputScaleFilterLabeled->SetScale(1);
+    vOutputScaleFilterLabeled->SetShift(0);
+    vOutputScaleFilterLabeled->SetInput(vChangeDataImgSpacingFilterSeg->GetOutput());
+    typedef itk::ImageFileWriter<OutputImageType> FileWriterTypeLabeled;
+    FileWriterTypeLabeled::Pointer vFileWriterLabeled = FileWriterTypeLabeled::New();
+    vFileWriterLabeled->SetFileName(vOutputFileName);
+    vFileWriterLabeled->SetInput(vOutputScaleFilterLabeled->GetOutput());
+    std::cout << "Labeled image is written to: " << vOutputFileName << std::endl;
+    vFileWriterLabeled->Update();
+ 
+
+    /*
+     * OUTPUT
+     *      * Write the parameter file
+     */
+    vParams.save(vOutputFileName + ".json");
 
 
     typedef itk::ChangeInformationImageFilter<InternalImageType> ChangeInformationImageFilterType23;
     ChangeInformationImageFilterType23::Pointer vChangeDataImgSpacingFilter2 = ChangeInformationImageFilterType23::New();
     InternalImageType::Pointer image3Dlysosomes = extractchannel(image5D, vParams.channels[1]);
+
     vChangeDataImgSpacingFilter2->SetInput(image3Dlysosomes);   
     vChangeDataImgSpacingFilter2->SetChangeSpacing(true);
     vChangeDataImgSpacingFilter2->SetOutputSpacing(vSpacingCL);
@@ -1845,6 +1871,19 @@ int main(int argc, char** argv) {
               << image3Dlysosomes->GetSpacing()                     
               << " was overridden to " << vSpacingCL << std::endl;
     vChangeDataImgSpacingFilter2->Update();
+
+    std::stringstream vOutLyso;
+    vOutLyso << parentPath << "/"
+            << coverslipNr << "-"
+            << imageNr << "-lysosomes.tif";
+    std::string vOutputFileNameLysosomes;
+    vOutputFileNameLysosomes = vOutLyso.str();
+
+    vOutputScaleFilterIn->SetInput(vChangeDataImgSpacingFilter2->GetOutput());
+    vFileWriterIn->SetFileName(vOutputFileNameLysosomes);
+    vFileWriterIn->SetInput(vOutputScaleFilterIn->GetOutput());
+    std::cout << "Lysosome image is written to: " << vOutputFileNameBacteria << std::endl;
+    vFileWriterIn->Update();
 
     typedef itk::LabelImageToShapeLabelMapFilter< LabelAbsImageType, itk::LabelMap
         < itk::StatisticsLabelObject< InternalImageType::PixelType, InternalImageType::ImageDimension > > > 
@@ -1897,6 +1936,7 @@ int main(int argc, char** argv) {
     //Get mean in Macrophage channel
     ChangeInformationImageFilterType23::Pointer vChangeDataImgSpacingFilter3 = ChangeInformationImageFilterType23::New();
     InternalImageType::Pointer image3Dmacrophage = extractchannel(image5D, vParams.channels[2]);
+
     vChangeDataImgSpacingFilter3->SetInput(image3Dmacrophage);   
     vChangeDataImgSpacingFilter3->SetChangeSpacing(true);
     vChangeDataImgSpacingFilter3->SetOutputSpacing(vSpacingCL);
@@ -1904,6 +1944,19 @@ int main(int argc, char** argv) {
               << image3Dmacrophage->GetSpacing()                     
               << " was overridden to " << vSpacingCL << std::endl;
     vChangeDataImgSpacingFilter3->Update();
+
+    std::stringstream vOutMacro;
+    vOutMacro << parentPath << "/"
+            << coverslipNr << "-"
+            << imageNr << "-macrophage.tif";
+    std::string vOutputFileNameMacrophage;
+    vOutputFileNameMacrophage = vOutMacro.str();
+
+    vOutputScaleFilterIn->SetInput(vChangeDataImgSpacingFilter3->GetOutput());
+    vFileWriterIn->SetFileName(vOutputFileNameMacrophage);
+    vFileWriterIn->SetInput(vOutputScaleFilterIn->GetOutput());
+    std::cout << "Macrophage image is written to: " << vOutputFileNameMacrophage << std::endl;
+    vFileWriterIn->Update();
 
     statisticsLabelMapFilter->SetInput2(vChangeDataImgSpacingFilter3->GetOutput()); 
     statisticsLabelMapFilter->InPlaceOn();
@@ -1915,12 +1968,6 @@ int main(int argc, char** argv) {
         vObjects[i].mean_macrophage = labelObject->GetMean();
     }
 
-    boost::filesystem::path p (argv[1]);
-    std::string filenameStem = p.stem().string();
-    int found;
-    found = filenameStem.find_first_of("-");
-    std::string coverslipNr = filenameStem.substr(0,found);
-    std::string imageNr = filenameStem.substr(found+1);
 
     //Print values to file
     for(unsigned int i = 0; i < vObjects.size(); ++i) {
