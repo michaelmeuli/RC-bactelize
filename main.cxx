@@ -724,12 +724,12 @@ InternalImageType::Pointer extractchannel(InternalImageType5D::Pointer image5D, 
 
 
 struct objectStruct{
-    int label;
+    unsigned long label;
     double x;
     double y;
     double z;
     double physicalSize;
-    int numberOfPixels;
+    unsigned long numberOfPixels;
     double maxDiameter;
     double minDiameter;
     double roundness;
