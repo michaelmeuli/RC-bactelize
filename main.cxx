@@ -1901,7 +1901,7 @@ int main(int argc, char** argv) {
     statisticsLabelMapFilter->Update();
 
     std::vector<objectStruct> vObjects;
-    for(unsigned int i = 0; i < statisticsLabelMapFilter->GetOutput()->GetNumberOfLabelObjects(); i++) {
+    for(unsigned long i = 0; i < statisticsLabelMapFilter->GetOutput()->GetNumberOfLabelObjects(); i++) {   
         objectStruct objectValues;
         StatisticsLabelMapFilterType::OutputImageType::LabelObjectType* labelObject = 
             statisticsLabelMapFilter->GetOutput()->GetNthLabelObject(i);
@@ -1962,7 +1962,7 @@ int main(int argc, char** argv) {
     statisticsLabelMapFilter->InPlaceOn();
     statisticsLabelMapFilter->Update();
 
-    for(unsigned int i = 0; i < statisticsLabelMapFilter->GetOutput()->GetNumberOfLabelObjects(); i++) {
+    for(unsigned long i = 0; i < statisticsLabelMapFilter->GetOutput()->GetNumberOfLabelObjects(); i++) {            
         StatisticsLabelMapFilterType::OutputImageType::LabelObjectType* labelObject = 
             statisticsLabelMapFilter->GetOutput()->GetNthLabelObject(i);
         vObjects[i].mean_macrophage = labelObject->GetMean();
