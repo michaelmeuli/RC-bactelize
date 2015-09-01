@@ -1,20 +1,19 @@
-macro "Open Bactelize-Out-Images" {
+macro "Open RC-bactelize-Out-Images" {
 
 pixelW=0.0616
 pixelH=0.0616
 pixelD=0.1998
-input = getDirectory("Input directory");
+input = getDirectory("Directory containing images to open");
 
 Dialog.create("File prefix");
 Dialog.addString("File prefix: ", "1-1", 5);
 Dialog.show();
 prefix = Dialog.getString();
 
-Dialog.create("Dataset for red circles");
-Dialog.addString("Dataset for red circles ", "1-1-A_result-subset2.txt", 30);
-Dialog.show();
-datafile = Dialog.getString();
-pathfileSub2 = input + datafile;
+pathfileSub2="";
+pathfileSub2=File.openDialog("Choose the dataset for selection of bacteria:"); 
+//pathfileSub2="/home/mmeuli/batch/out/1-1-A_result-subset2.txt";
+//pathfileSub2="/home/mmeuli/Bioimage/Colocalization-Experiments/20150611 BCG Pasteur-Aeras zmp1 ko in RAW/data-results-deconvoluted/20150818-results/1-1-A_result-subset2.txt";
 
 cNr=0;
 iNr=0;
@@ -71,33 +70,35 @@ setLocation(740, 25);
 run("Synchronize Windows");
 
 
-filestring=File.openAsString(pathfileSub2); 
-rows=split(filestring, "\n");
-count=0;
-for(i=1; i<rows.length; i++){ 
-	columns=split(rows[i],"\t"); 
-	if ((parseInt(columns[0])==cNr) && (parseInt(columns[1])==iNr)) {
-		count++;
+if (pathfileSub2 != ""){
+	filestring=File.openAsString(pathfileSub2); 
+	rows=split(filestring, "\n");
+	count=0;
+	for(i=1; i<rows.length; i++){ 
+		columns=split(rows[i],"\t"); 
+		if ((parseInt(columns[0])==cNr) && (parseInt(columns[1])==iNr)) {
+			count++;
+			}
+	}
+
+	x=newArray(count); 
+	y=newArray(count); 
+	index=0;
+	for(i=1; i<rows.length; i++){ 
+		columns=split(rows[i],"\t"); 
+		if ((parseInt(columns[0])==cNr) && (parseInt(columns[1])==iNr)) {
+			x[index]=parseFloat(columns[3]); 
+			y[index]=parseFloat(columns[4]); 
+			index++;
+			}
+		}
+	
+	Overlay.remove;
+	for(i=0; i<count; i++){ 
+	 	drawEllipse((x[i]/pixelW-50), (y[i]/pixelH-50), "red", 4);
+		Overlay.show;
 		}
 }
-
-x=newArray(count); 
-y=newArray(count); 
-index=0;
-for(i=1; i<rows.length; i++){ 
-	columns=split(rows[i],"\t"); 
-	if ((parseInt(columns[0])==cNr) && (parseInt(columns[1])==iNr)) {
-		x[index]=parseFloat(columns[3]); 
-		y[index]=parseFloat(columns[4]); 
-		index++;
-		}
-	}
-
-Overlay.remove;
-for(i=0; i<count; i++){ 
- 	drawEllipse((x[i]/pixelW-50), (y[i]/pixelH-50), "red", 4);
-	Overlay.show;
-	}
 
   
 function drawEllipse(x, y, color, lineWidth) {
@@ -106,11 +107,5 @@ function drawEllipse(x, y, color, lineWidth) {
     Overlay.drawEllipse(x, y, 100, 100);
 	}
 
-function closeWindows() { 
-	while (nImages>0) { 
-		selectImage(nImages); 
-		close(); 
-      	} 
-  	} 
 
 }	// end of macro

@@ -1,0 +1,89 @@
+{
+    "params":
+    {
+        "preproc":
+        {
+            "preproc_do_prefilter": "false",
+            "preproc_prefilter_sigma": "1",
+            "preproc_do_masking": "false",
+            "preproc_mask_image": "",
+            "preproc_masking_sigma": "5",
+            "preproc_percentile": "0.8",
+            "preproc_do_normalize": "true",
+            "preproc_discard_lower_percentile": "false",
+            "preproc_discard_upper_percentile": "true",
+            "preproc_bgs_scale": "0"
+        },
+        "init":
+        {
+            "init_rect_boarder":
+            {
+                "0": "10",
+                "1": "10",
+                "2": "10"
+            },
+            "init_max_search_filter_sigma": "5",
+            "init_blob_min": "36",
+            "init_blob_max": "46",
+            "init_circle_radius": "3",
+            "init_image": "",
+            "init_mode": "blob_det"
+        },
+        "seg":
+        {
+            "seg_allow_fission": "false",
+            "seg_allow_fusion": "false",
+            "seg_allow_handles": "true",
+            "seg_use_fast_evolution": "false",
+            "seg_use_sobolev_gradients": "false",
+            "seg_num_iter": "200",
+            "seg_use_gpu": "false",
+            "seg_debug": "false",
+            "verbose": "false",
+            "seg_cell_size": "20"
+        },
+        "energy":
+        {
+            "energy_coeff_data": "1",
+            "energy_coeff_length": "0.04",
+            "energy_coeff_balloon": "0",
+            "energy_coeff_outward_flow": "0",
+            "energy_coeff_shape": "0",
+            "energy_coeff_shape_23D": "0",
+            "energy_coeff_vec_field": "0",
+            "energy_region_merge_ths": "0.2",
+            "energy_particle_interaction_radius": "4",
+            "energy_sobolev_gradient_kernel_sigma": "2",
+            "energy_local_window_radius": "7",
+            "energy_curvature_mask_radius": "4",
+            "energy_psf_file_name": "",
+            "energy_shape_template_file_name": "",
+            "energy_vector_field_file_name": "",
+            "energy_ext_name": "ps",
+            "energy_int_name": "curv",
+            "energy_order_of_moments": "20",
+            "energy_shape_centroid_coeff":
+            {
+                "0": "1",
+                "1": "0",
+                "2": "0"
+            }
+        },
+        "image":
+        {
+            "image_spacing":
+            {
+                "0": "0.0616",
+                "1": "0.0616",
+                "2": "0.1998"
+            },
+            "image_name": "\/home\/mmeuli\/batch\/in\/1-1.ome",
+            "channels":
+            {
+                "bacteria": "0",
+                "lysosomes": "1",
+                "cells": "2"
+            }
+        }
+    }
+}

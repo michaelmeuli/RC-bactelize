@@ -1447,12 +1447,20 @@ int main(int argc, char** argv) {
 
     // Michael Meuli: only to find optimal parameters
     if(vParams.verbose && (vInitKind == e_spheres)) {
+
+        std::stringstream vOutGauss;
+        vOutGauss << parentPath << "/"
+                << coverslipNr << "-"
+                << imageNr << "-Gauss.nrrd";
+        std::string vOutputFileNameGauss;
+        vOutputFileNameGauss = vOutGauss.str();
+
        typedef itk::ImageFileWriter<InternalImageType> GaussFileWriterType;
        GaussFileWriterType::Pointer vGaussFileWriter = GaussFileWriterType::New();
-       vGaussFileWriter->SetFileName("Gauss.nrrd");
+       vGaussFileWriter->SetFileName(vOutputFileNameGauss);
        vGaussFileWriter->SetInput(vMaxSearchRecursiveGaussFilter->GetOutput());
        try {
-           std::cout << "Output image is written to: " << "Gauss.nrrd" << std::endl;
+           std::cout << "Output image is written to: " << vOutputFileNameGauss << std::endl;
            vGaussFileWriter->Update();
        } catch (itk::ExceptionObject & e) {
            std::cerr << "Exception caught after starting pipeline in main():" << std::endl;
@@ -1463,12 +1471,20 @@ int main(int argc, char** argv) {
      }
 
      if(vParams.verbose && (vInitKind == e_spheres)) {
+
+        std::stringstream vOutSpheres;
+        vOutSpheres << parentPath << "/"
+                << coverslipNr << "-"
+                << imageNr << "-Spheres.nrrd";
+        std::string vOutputFileNameSpheres;
+        vOutputFileNameSpheres = vOutSpheres.str();
+
         typedef itk::ImageFileWriter<LabelAbsImageType> FileWriterTypeSpheres;
         FileWriterTypeSpheres::Pointer vFileWriterSpheres = FileWriterTypeSpheres::New();
-        vFileWriterSpheres->SetFileName("Spheres.nrrd");     
+        vFileWriterSpheres->SetFileName(vOutputFileNameSpheres);     
         vFileWriterSpheres->SetInput(vDilateFilter->GetOutput());
         try {
-            std::cout << "Output image is written to: " << "Spheres.nrrd" << std::endl;
+            std::cout << "Output image is written to: " << vOutputFileNameSpheres << std::endl;
             vFileWriterSpheres->Update();
         } catch (itk::ExceptionObject & e) {
             std::cerr << "Exception caught after starting pipeline in main():" << std::endl;
@@ -1479,12 +1495,20 @@ int main(int argc, char** argv) {
      }
 
      if(vParams.verbose && (vInitKind == e_blob_det)) {
+
+        std::stringstream vOutBlob;
+        vOutBlob << parentPath << "/"
+                << coverslipNr << "-"
+                << imageNr << "-Blobs.nrrd";
+        std::string vOutputFileNameBlobs;
+        vOutputFileNameBlobs = vOutBlob.str();
+
         typedef itk::ImageFileWriter<LabelAbsImageType> FileWriterTypeBlob;
         FileWriterTypeBlob::Pointer vFileWriterBlob = FileWriterTypeBlob::New();        
-        vFileWriterBlob->SetFileName("Blobs.nrrd");
+        vFileWriterBlob->SetFileName(vOutputFileNameBlobs);
         vFileWriterBlob->SetInput(vInitImagePointer);       
         try {
-            std::cout << "Blobs image is written to: " << "Blobs.nrrd" << std::endl;
+            std::cout << "Blobs image is written to: " << vOutputFileNameBlobs << std::endl;
             vFileWriterBlob->Update();
         } catch (itk::ExceptionObject & e) {
             std::cerr << "Exception caught after starting pipeline in main():" << std::endl;
