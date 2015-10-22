@@ -16,7 +16,7 @@ else
     for f in $FILES
     do
         echo "Moving $f to $OUTDIR/$2$i.$EXT"
-        mv "$f" "$OUTDIR/$2$i.$Ext"
+        mv "$f" "$OUTDIR/$2$i.$EXT"
         i=$((i+1))
     done
  

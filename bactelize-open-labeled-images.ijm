@@ -1,8 +1,8 @@
 macro "Open Labeled-Images" {
 
-pixelW=0.0616
-pixelH=0.0616
-pixelD=0.1998
+pixelW=0.0499610
+pixelH=0.0499610
+pixelD=0.1502000
 input = getDirectory("Directory containing images to open");
 
 
