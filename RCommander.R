@@ -5,14 +5,14 @@
 #install.packages("relimp")
 #install.packages("VGAM")
 
-setwd("/media/mmeuli/WD-HD-ext4/20150903_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/batch/out-20151029")
+setwd("/media/mmeuli/WD-HD-ext4/20151105_BCG_Denmakr__zmp1_3x-ko/data-deconvoluted-h5-renamed/out")
 
-min.size      <- 1
-max.size      <- 5
-min.red       <- 1
-min.roundness <- 0.4
-min.ration    <- 1.5
-max.ration    <- 6
+min.size      <- 0
+max.size      <- 1000000
+min.red       <- 0
+min.roundness <- 0
+min.ration    <- 0
+max.ration    <- 100
 
 ImgData0 <- read.table("1-1-A_result.txt", header=TRUE, sep="", na.strings="-nan", dec=".", strip.white=TRUE)
 
@@ -24,10 +24,10 @@ length.na.maxDiameter <- length(ImgData0$maxDiameter[is.na(ImgData0$maxDiameter)
 ImgData1 <- na.omit(ImgData0)
 length.ImgData1.lyso <- length(ImgData1$lysosome)
 
-ImgData1$condition[ImgData1$cNr >= 1 & ImgData1$cNr <= 3] <- "live"
-ImgData1$condition[ImgData1$cNr >= 4 & ImgData1$cNr <= 6] <- "dead"
-ImgData1$condition[ImgData1$cNr >= 7 & ImgData1$cNr <= 9] <- "zmp1"
-ImgData1$condition <- factor(ImgData1$condition, levels = c("live", "dead", "zmp1"))
+ImgData1$condition[ImgData1$cNr >= 1 & ImgData1$cNr <= 3] <- "wt"
+ImgData1$condition[ImgData1$cNr >= 4 & ImgData1$cNr <= 6] <- "zmp1"
+ImgData1$condition[ImgData1$cNr >= 7 & ImgData1$cNr <= 9] <- "zmp1/VEP/lnt"
+ImgData1$condition <- factor(ImgData1$condition, levels = c("wt", "zmp1", "zmp1/VEP/lnt"))
 condition.freq1 <- table(ImgData1$condition)
 
 ImgData1$log.macrophage <- log(ImgData1$macrophage)
@@ -49,9 +49,9 @@ ImgData3w$pixels <- ImgData3w$condition <- ImgData3w$log.lysosome <- ImgData3w$l
 
 write.table(format(ImgData3w, digits=3), file="1-1-A_result-ImgData3.txt", sep="\t", row.names=FALSE, col.names=TRUE, quote=FALSE)
 
-C1D3 <- subset(ImgData3, condition == "live")
-C2D3 <- subset(ImgData3, condition == "dead")
-C3D3 <- subset(ImgData3, condition == "zmp1")
+C1D3 <- subset(ImgData3, condition == "wt")
+C2D3 <- subset(ImgData3, condition == "zmp1")
+C3D3 <- subset(ImgData3, condition == "zmp1/VEP/lnt")
 wilcox.C1D3.C3D3 <- wilcox.test(C1D3$log.lysosome, C3D3$log.lysosome, paired=F)
 
 
