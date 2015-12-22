@@ -184,6 +184,6 @@ while (filenumber < h5count) {
 		selectWindow(winame); 
 		run("Close"); 
 	} 
-	h5count++;
+	filenumber++;
 }
   
