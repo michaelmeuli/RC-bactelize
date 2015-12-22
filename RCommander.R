@@ -5,7 +5,7 @@
 #install.packages("relimp")
 #install.packages("VGAM")
 
-setwd("/media/mmeuli/WD-HD-ext4/20150903_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/batch/out-20151019")
+setwd("/media/mmeuli/WD-HD-ext4/20150903_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/batch/out-20151029")
 
 min.size      <- 1
 max.size      <- 5
@@ -48,6 +48,13 @@ ImgData3w$macrophage <- ImgData3w$log.macrophage
 ImgData3w$pixels <- ImgData3w$condition <- ImgData3w$log.lysosome <- ImgData3w$log.macrophage <- NULL
 
 write.table(format(ImgData3w, digits=3), file="1-1-A_result-ImgData3.txt", sep="\t", row.names=FALSE, col.names=TRUE, quote=FALSE)
+
+C1D3 <- subset(ImgData3, condition == "live")
+C2D3 <- subset(ImgData3, condition == "dead")
+C3D3 <- subset(ImgData3, condition == "zmp1")
+wilcox.C1D3.C3D3 <- wilcox.test(C1D3$log.lysosome, C3D3$log.lysosome, paired=F)
+
+
 
 require(Rcmdr)
 
@@ -166,6 +173,9 @@ dev.off()
 options(width=as.integer(160))
 sink("1-1-A-A-result-text.txt")
 
+cat("Wilcox.test with ImgData3 and C1 and C3:\n")
+wilcox.C1D3.C3D3
+cat("\n\n")
 cat("Number of objects in ImgData0:           \t", length.ImgData0.lyso, "\n")
 cat("Objects with maxDiameter not a number:   \t",length.na.maxDiameter, "\n")
 cat("Number of objects in ImgData1:           \t", length.ImgData1.lyso, "\n")
