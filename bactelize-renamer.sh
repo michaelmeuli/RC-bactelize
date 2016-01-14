@@ -1,8 +1,8 @@
 #!/bin/bash
 
 EXT=h5
-FILES=/media/mmeuli/WD-HD-ext4/20150903_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/20160104-ijm-h5/rename/$1
-OUTDIR=/media/mmeuli/WD-HD-ext4/20150903_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/20160104-ijm-h5/wait
+FILES=/media/mmeuli/WD-HD-ext4/20150611_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/data-hdf5-deconvoluted/rename/$1
+OUTDIR=/media/mmeuli/WD-HD-ext4/20150611_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/data-hdf5-deconvoluted/wait
 
 if [ -z ${1+x} ]
 then

@@ -29,9 +29,9 @@ call("ij.gui.WaitForUserDialog.setNextLocation",x,y);
 waitForUser("Run Region competition before this Macro to set all parameters correct");
 
 //  inputDir = getDirectory("Choose the Directory of the input files. ");
-inputDir = "/media/mmeuli/WD-HD-ext4/20150903_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/20160104-ijm-h5/in/"
+inputDir = "/media/mmeuli/WD-HD-ext4/20150611_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/data-hdf5-deconvoluted/in/"
 //  inputDir = getDirectory("Choose the Directory for the output files. ");
-outputDir = "/media/mmeuli/WD-HD-ext4/20150903_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/20160104-ijm-h5/out/"
+outputDir = "/media/mmeuli/WD-HD-ext4/20150611_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/data-hdf5-deconvoluted/out/"
 list = getFileList(inputDir);
 count = 0;
 for (i=0; i<list.length; i++) {
@@ -82,7 +82,7 @@ while (filenumber < h5count) {
 	waitForUser("Load data set of h5 file and then click ok.");
 	title = getTitle(); 
 	selectWindow(title);
-	run("Set... ", "zoom=150"); 
+	run("Set... ", "zoom=100"); 
 	setLocation(100, 220);
 	run("Properties...", "pixel_width=pixelW pixel_height=pixelH voxel_depth=pixelD");
 	getDimensions(w, h, channels, slices, frames);
@@ -97,10 +97,10 @@ while (filenumber < h5count) {
 	Stack.setPosition(3, m_slice, 1);
 	run("Blue"); 
 	run("Enhance Contrast", "saturated=0.35");
-	wait(500);
+	wait(1000);
 	for (i=1; i<=slices; i++) {
 	Stack.setPosition(1, i, 1);
-	wait(100);
+	wait(200);
 	}
 	Stack.setPosition(1, m_slice, 1);
 
@@ -118,20 +118,20 @@ while (filenumber < h5count) {
 		c2Title = "C2-" + title; 
 		c3Title = "C3-" + title; 
 		selectWindow(c1Title);
-		run("Set... ", "zoom=200"); 
+		run("Set... ", "zoom=100"); 
 		setLocation(100, 220);
 		selectWindow(c2Title);
-		run("Set... ", "zoom=200"); 
+		run("Set... ", "zoom=100"); 
 		setLocation(500, 220);
 		selectWindow(c3Title);
-		run("Set... ", "zoom=200"); 
+		run("Set... ", "zoom=100"); 
 		setLocation(100, 620);
 		
 		selectWindow(c1Title);
 		run("Region Competition", "e_data=e_PC e_length=Sphere_Regularization lambda=0.0400 theta=0.0000 max_iterations=300 oscillation=0.0200 initialization=LocalMax inputimage=[c1Title] labelimage=[] keep_frames show_and_save_statistics");
 		titleSeg = getTitle(); 
 		selectWindow(titleSeg);
-		run("Set... ", "zoom=200"); 
+		run("Set... ", "zoom=100"); 
 		setLocation(500, 620);
 		run("Properties...", "pixel_width=pixelW pixel_height=pixelH voxel_depth=pixelD");
 		Stack.setSlice(m_slice); 

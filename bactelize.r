@@ -5,7 +5,7 @@
 #install.packages("relimp")
 #install.packages("VGAM")
 
-setwd("/media/mmeuli/WD-HD-ext4/20150903_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/20160104-ijm-h5/out")
+setwd("/media/mmeuli/WD-HD-ext4/20150611_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/data-hdf5-deconvoluted/out")
 
 min.size      <- 0
 max.size      <- 1000000
@@ -241,8 +241,8 @@ cat("\n")
 sink()
 
 
-
-#require(VGAM)
+#could be done: use a threshold to exclude bacteria wich are probably outside the macrophages
+#threshold <- mean(ImgData3$log.macrophage)-(2*sd(ImgData3$log.lysosome))
 
 
 
