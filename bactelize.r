@@ -5,7 +5,7 @@
 #install.packages("relimp")
 #install.packages("VGAM")
 
-setwd("/media/mmeuli/WD-HD-ext4/20150611_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/data-hdf5-deconvoluted/out")
+setwd("/media/mmeuli/WD-HD-ext4/20160408_BCG_Pasteur-Aeras_in_THP-1/data-deconvolved/out")
 
 min.size      <- 0
 max.size      <- 1000000
