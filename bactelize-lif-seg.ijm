@@ -3,7 +3,7 @@
 //E length: Sphere_Regularization
 //Initializatioin: LocalMax
 //Region Competition Parameters
-//no fusion, no fission, no handles
+//no fusion, no fission, handles yes
 //Lambda E length: 0.0400
 //Thete E merge: 0.000
 //Max Iterations: 300
@@ -22,9 +22,11 @@ waitForUser("Run Region competition before this Macro to set all parameters corr
 
 
 //  inputDir = getDirectory("Choose the Directory of the input files. ");
-inputDir = "/media/mmeuli/WD-HD-ext4/20150325_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/2016014/in/"
+//inputDir = "/media/mmeuli/WD-HD-ext4/20160408_BCG_Pasteur-Aeras_in_THP-1/data-deconvolved/in/test/"
+inputDir = "/media/mmeuli/WD-HD-ext4/20160408_BCG_Pasteur-Aeras_in_THP-1/data-deconvolved/in/smeg/"
 //  inputDir = getDirectory("Choose the Directory for the output files. ");
-outputDir = "/media/mmeuli/WD-HD-ext4/20150325_BCG_Pasteur-Aeras_zmp1_ko_in_RAW/2016014/out/"
+//outputDir = "/media/mmeuli/WD-HD-ext4/20160408_BCG_Pasteur-Aeras_in_THP-1/data-deconvolved/out/test/"
+outputDir = "/media/mmeuli/WD-HD-ext4/20160408_BCG_Pasteur-Aeras_in_THP-1/data-deconvolved/out/"
 list = getFileList(inputDir);
 count = 0;
 for (i=0; i<list.length; i++) {
